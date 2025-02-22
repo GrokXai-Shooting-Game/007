@@ -2,26 +2,26 @@
 <html>
 <head>
     <title>Space Shooter</title>
-    <canvas id="gameCanvas"></canvas>
-<style>
-    body {
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        background: #000;
-        overflow: hidden;
-    }
-    canvas {
-        width: 100vw;
-        height: 100vh;
-        max-width: 800px;
-        max-height: 600px;
-        border: 1px solid black;
-    }
-</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #000;
+            overflow: hidden;
+        }
+        canvas {
+            width: 100vw;
+            height: 100vh;
+            max-width: 800px;
+            max-height: 600px;
+            border: 1px solid black;
+        }
+    </style>
 </head>
 <body>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
@@ -29,113 +29,86 @@
     <img id="playerImage" src="player.png" style="display:none;">
     <img id="enemyImage" src="enemy.png" style="display:none;">
     <script>
-       
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
 
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+        canvas.width = Math.min(window.innerWidth, 800);
+        canvas.height = Math.min(window.innerHeight, 600);
 
-// Set canvas to match its displayed size
-canvas.width = Math.min(window.innerWidth, 800);
-canvas.height = Math.min(window.innerHeight, 600);
-
-// Adjust player starting position based on new canvas size
-player.x = canvas.width / 2;
-player.y = canvas.height - 50;
+        const scaleX = canvas.width / canvas.offsetWidth;
+        const scaleY = canvas.height / canvas.offsetHeight;
 
         const bulletImg = document.getElementById("bulletImage");
         const playerImg = document.getElementById("playerImage");
         const enemyImg = document.getElementById("enemyImage");
 
-        // Player
         const player = {
-    x: canvas.width / 2,
-    y: canvas.height - canvas.height * 0.1, // 10% from bottom
-    width: canvas.width * 0.05,  // 5% of canvas width
-    height: canvas.height * 0.05, // Adjust ratio as needed
-    speed: canvas.width * 0.01,   // Scale speed too
-    dx: 0
-};
+            x: canvas.width / 2,
+            y: canvas.height - canvas.height * 0.1,
+            width: canvas.width * 0.05,
+            height: canvas.height * 0.05,
+            speed: canvas.width * 0.01,
+            dx: 0
+        };
 
-        // Projectiles
         const projectiles = [];
         const projectileSpeed = -10;
-
-        // Enemies
         const enemies = [];
-        const enemySpeed = canvas.height * 0.005; // Scale with height
+        const enemySpeed = canvas.height * 0.005;
         let spawnTimer = 0;
-
-        // Score
         let score = 0;
+        let touchX = null;
+        let isShooting = false;
+        let shootCooldown = 0;
 
-        // Game controls
-        let leftPressed = false;
-        let rightPressed = false;
-        let spacePressed = false;
-
-       
-
-       function spawnEnemy() {
-    enemies.push({
-        x: Math.random() * (canvas.width - canvas.width * 0.05),
-        y: -canvas.height * 0.05,
-        width: canvas.width * 0.05,
-        height: canvas.height * 0.05
-    });
-}
+        function spawnEnemy() {
+            enemies.push({
+                x: Math.random() * (canvas.width - canvas.width * 0.05),
+                y: -canvas.height * 0.05,
+                width: canvas.width * 0.05,
+                height: canvas.height * 0.05
+            });
+        }
 
         function shoot() {
-    projectiles.push({
-        x: player.x + player.width / 2 - (canvas.width * 0.025) / 2,
-        y: player.y,
-        width: canvas.width * 0.025,  // 2.5% of width
-        height: canvas.height * 0.05  // Adjust ratio
-    });
-}
+            projectiles.push({
+                x: player.x + player.width / 2 - (canvas.width * 0.025) / 2,
+                y: player.y,
+                width: canvas.width * 0.025,
+                height: canvas.height * 0.05
+            });
+        }
 
-canvas.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    touchX = e.touches[0].clientX - canvas.offsetLeft;
-    isShooting = true;
-});
+        canvas.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            touchX = (e.touches[0].clientX - canvas.offsetLeft) * scaleX;
+            isShooting = true;
+        });
 
-canvas.addEventListener("touchmove", (e) => {
-    e.preventDefault();
-    touchX = e.touches[0].clientX - canvas.offsetLeft;
-});
+        canvas.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            touchX = (e.touches[0].clientX - canvas.offsetLeft) * scaleX;
+        });
 
-canvas.addEventListener("touchend", (e) => {
-    e.preventDefault();
-    touchX = null;
-    isShooting = false;
-});
+        canvas.addEventListener("touchend", (e) => {
+            e.preventDefault();
+            touchX = null;
+            isShooting = false;
+        });
 
         function update() {
-    // Old movement:
-    // if (leftPressed && player.x > 0) player.x -= player.speed;
-    // if (rightPressed && player.x < canvas.width - player.width) player.x += player.speed;
+            if (touchX !== null) {
+                let targetX = touchX - player.width / 2;
+                if (targetX < 0) targetX = 0;
+                if (targetX > canvas.width - player.width) targetX = canvas.width - player.width;
+                player.x += (targetX - player.x) * 0.1;
+            }
+            if (isShooting && shootCooldown <= 0) {
+                shoot();
+                shootCooldown = 10;
+            }
+            if (shootCooldown > 0) shootCooldown--;
 
-    // New touch movement:
-    if (touchX !== null) {
-        let targetX = touchX - player.width / 2;
-        if (targetX < 0) targetX = 0;
-        if (targetX > canvas.width - player.width) targetX = canvas.width - player.width;
-        player.x += (targetX - player.x) * 0.1; // Smooth movement
-    }
-
-    // Old shooting:
-    // if (spacePressed) { shoot(); spacePressed = false; }
-
-    // New touch shooting:
-    if (isShooting) {
-        shoot();
-        isShooting = false; // One shot per touch start
-    }
-
-    // ... (rest of update function unchanged) ...
-}
-
-            // Update enemies
             spawnTimer++;
             if (spawnTimer % 60 === 0) spawnEnemy();
             for (let i = enemies.length - 1; i >= 0; i--) {
@@ -143,7 +116,6 @@ canvas.addEventListener("touchend", (e) => {
                 if (enemies[i].y > canvas.height) enemies.splice(i, 1);
             }
 
-            // Collision detection
             for (let i = enemies.length - 1; i >= 0; i--) {
                 for (let j = projectiles.length - 1; j >= 0; j--) {
                     if (projectiles[j].x < enemies[i].x + enemies[i].width &&
@@ -161,34 +133,11 @@ canvas.addEventListener("touchend", (e) => {
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw player
-           // Old:
-           ctx.fillStyle = "white";
-           ctx.fillRect(player.x, player.y, player.width, player.height);
-
-           // New:
-           ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-
-           // Old:
-           // projectiles.forEach(p => ctx.fillRect(p.x, p.y, p.width, p.height));
-
-           // New:
-           projectiles.forEach(p => {
-           ctx.drawImage(bulletImg, p.x, p.y, p.width, p.height);
-           });
-
-            // Draw enemies
-            // Old:
-            ctx.fillStyle = "green";
-            enemies.forEach(e => ctx.fillRect(e.x, e.y, e.width, e.height));
-
-            // New:
+            ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+            projectiles.forEach(p => ctx.drawImage(bulletImg, p.x, p.y, p.width, p.height));
             enemies.forEach(e => ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height));
-
-            // Draw score
             ctx.fillStyle = "white";
-            ctx.font = "20px Arial";
+            ctx.font = `${Math.max(20, canvas.width * 0.025)}px Arial`;
             ctx.fillText(`Score: ${score}`, 10, 30);
         }
 
