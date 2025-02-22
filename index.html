@@ -20,14 +20,12 @@
             max-width: 800px;
             max-height: 600px;
             border: 1px solid black;
+            touch-action: none; /* Ensure touch works */
         }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <img id="bulletImage" src="bullet.png" style="display:none;">
-    <img id="playerImage" src="player.png" style="display:none;">
-    <img id="enemyImage" src="enemy.png" style="display:none;">
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
@@ -38,9 +36,13 @@
         const scaleX = canvas.width / canvas.offsetWidth;
         const scaleY = canvas.height / canvas.offsetHeight;
 
-        const bulletImg = document.getElementById("bulletImage");
-        const playerImg = document.getElementById("playerImage");
-        const enemyImg = document.getElementById("enemyImage");
+        // Preload images
+        const bulletImg = new Image();
+        bulletImg.src = "bullet.png";
+        const playerImg = new Image();
+        playerImg.src = "player.png";
+        const enemyImg = new Image();
+        enemyImg.src = "enemy.png";
 
         const player = {
             x: canvas.width / 2,
@@ -52,7 +54,7 @@
         };
 
         const projectiles = [];
-        const projectileSpeed = -10; // Negative to move upward
+        const projectileSpeed = -10;
         const enemies = [];
         const enemySpeed = canvas.height * 0.005;
         let spawnTimer = 0;
@@ -81,55 +83,4 @@
 
         canvas.addEventListener("touchstart", (e) => {
             e.preventDefault();
-            touchX = (e.touches[0].clientX - canvas.offsetLeft) * scaleX;
-            isShooting = true;
-        });
-
-        canvas.addEventListener("touchmove", (e) => {
-            e.preventDefault();
-            touchX = (e.touches[0].clientX - canvas.offsetLeft) * scaleX;
-        });
-
-        canvas.addEventListener("touchend", (e) => {
-            e.preventDefault();
-            touchX = null;
-            isShooting = false;
-        });
-
-        function update() {
-            // Player movement
-            if (touchX !== null) {
-                let targetX = touchX - player.width / 2;
-                if (targetX < 0) targetX = 0;
-                if (targetX > canvas.width - player.width) targetX = canvas.width - player.width;
-                player.x += (targetX - player.x) * 0.1;
-            }
-
-            // Shooting logic
-            if (isShooting && shootCooldown <= 0) {
-                shoot();
-                shootCooldown = 10;
-            }
-            if (shootCooldown > 0) shootCooldown--;
-
-            // Update projectiles (move upward)
-            for (let i = projectiles.length - 1; i >= 0; i--) {
-                projectiles[i].y += projectileSpeed;
-                if (projectiles[i].y + projectiles[i].height < 0) {
-                    projectiles.splice(i, 1); // Remove off-screen projectiles
-                }
-            }
-
-            // Update enemies
-            spawnTimer++;
-            if (spawnTimer % 60 === 0) spawnEnemy();
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                enemies[i].y += enemySpeed;
-                if (enemies[i].y > canvas.height) enemies.splice(i, 1);
-            }
-
-            // Collision detection
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                for (let j = projectiles.length - 1; j >= 0; j--) {
-                    if (projectiles[j].x < enemies[i].x + enemies[i].width &&
-                        projectiles[j].x + projectiles[j].width > enemies
+            const rect = canvas.getBounding
