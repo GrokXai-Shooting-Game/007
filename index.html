@@ -10,17 +10,19 @@
 <body>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <img id="bulletImage" src="bullet.png" style="display:none;">
+    <img id="playerImage" src="player.png" style="display:none;">
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const bulletImg = document.getElementById("bulletImage");
+        const playerImg = document.getElementById("playerImage");
 
         // Player
         const player = {
             x: canvas.width / 2,
             y: canvas.height - 50,
-            width: 40,
-            height: 20,
+            width: 50,
+            height: 30,
             speed: 5,
             dx: 0
         };
@@ -116,8 +118,12 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Draw player
-            ctx.fillStyle = "white";
-            ctx.fillRect(player.x, player.y, player.width, player.height);
+           // Old:
+           ctx.fillStyle = "white";
+           ctx.fillRect(player.x, player.y, player.width, player.height);
+
+           // New:
+           ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
 
            // Old:
            // projectiles.forEach(p => ctx.fillRect(p.x, p.y, p.width, p.height));
