@@ -30,22 +30,11 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Responsive canvas sizing
-        function resizeCanvas() {
-            canvas.width = Math.min(window.innerWidth, 800);
-            canvas.height = Math.min(window.innerHeight, 600);
-            scaleX = canvas.width / canvas.offsetWidth;
-            scaleY = canvas.height / canvas.offsetHeight;
-            // Adjust player position
-            player.x = Math.min(player.x, canvas.width - player.width);
-            player.y = canvas.height - canvas.height * 0.1;
-            player.speed = canvas.width * 0.01; // Update speed on resize
-        }
-        window.addEventListener("resize", resizeCanvas);
-        resizeCanvas(); // Set initial size
-
-        let scaleX = canvas.width / canvas.offsetWidth;
-        let scaleY = canvas.height / canvas.offsetHeight;
+        // Initial canvas size
+        canvas.width = Math.min(window.innerWidth, 800);
+        canvas.height = Math.min(window.innerHeight, 600);
+        const scaleX = canvas.width / canvas.offsetWidth;
+        const scaleY = canvas.height / canvas.offsetHeight;
 
         // Preload images
         const bulletImg = new Image();
@@ -103,6 +92,7 @@
             const rect = canvas.getBoundingClientRect();
             touchX = (e.touches[0].clientX - rect.left) * scaleX;
             isShooting = true;
+            console.log("Touch start:", touchX);
         });
 
         canvas.addEventListener("touchmove", (e) => {
@@ -217,32 +207,33 @@
         }
 
         function gameLoop() {
-            try {
-                update();
-                draw();
-            } catch (e) {
-                console.error("Game loop error:", e);
-            }
+            update();
+            draw();
             requestAnimationFrame(gameLoop);
         }
 
-        // Start game after images load or with timeout
+        // Start game after images load or immediately with fallback
         let imagesLoaded = 0;
         const totalImages = 3;
         function onImageLoad() {
             imagesLoaded++;
-            if (imagesLoaded === totalImages) gameLoop();
+            if (imagesLoaded === totalImages) {
+                console.log("All images loaded, starting game");
+                gameLoop();
+            }
         }
 
         bulletImg.onload = playerImg.onload = enemyImg.onload = onImageLoad;
         bulletImg.onerror = playerImg.onerror = enemyImg.onerror = () => {
             imagesLoaded++;
+            console.error("An image failed to load");
             if (imagesLoaded === totalImages) gameLoop();
         };
 
+        // Start immediately if images fail after a short delay
         setTimeout(() => {
             if (imagesLoaded < totalImages) {
-                console.warn("Images not fully loaded, starting anyway");
+                console.warn("Starting game despite incomplete image load");
                 gameLoop();
             }
         }, 2000);
