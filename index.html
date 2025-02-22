@@ -4,21 +4,23 @@
     <title>Space Shooter</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        body {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
             background: #000;
-            overflow: hidden;
         }
         canvas {
-            width: 100vw;
-            height: 100vh;
             max-width: 800px;
             max-height: 600px;
+            width: 100%;
+            height: 100%;
             border: 1px solid white;
             touch-action: none;
         }
@@ -30,11 +32,41 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Initial canvas size
-        canvas.width = Math.min(window.innerWidth, 800);
-        canvas.height = Math.min(window.innerHeight, 600);
-        const scaleX = canvas.width / canvas.offsetWidth;
-        const scaleY = canvas.height / canvas.offsetHeight;
+        // Set canvas size dynamically
+        function resizeCanvas() {
+            const maxWidth = 800;
+            const maxHeight = 600;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            const aspectRatio = maxWidth / maxHeight;
+
+            // Fit canvas to viewport while maintaining aspect ratio
+            let newWidth = Math.min(windowWidth, maxWidth);
+            let newHeight = newWidth / aspectRatio;
+            if (newHeight > windowHeight) {
+                newHeight = Math.min(windowHeight, maxHeight);
+                newWidth = newHeight * aspectRatio;
+            }
+
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+
+            // Recalculate scaling for touch
+            scaleX = canvas.width / canvas.offsetWidth;
+            scaleY = canvas.height / canvas.offsetHeight;
+
+            // Adjust game elements
+            player.width = canvas.width * 0.05;
+            player.height = canvas.height * 0.05;
+            player.speed = canvas.width * 0.01;
+            player.x = Math.min(player.x, canvas.width - player.width);
+            player.y = canvas.height - canvas.height * 0.1;
+        }
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas(); // Initial sizing
+
+        let scaleX = canvas.width / canvas.offsetWidth;
+        let scaleY = canvas.height / canvas.offsetHeight;
 
         // Preload images
         const bulletImg = new Image();
@@ -92,7 +124,6 @@
             const rect = canvas.getBoundingClientRect();
             touchX = (e.touches[0].clientX - rect.left) * scaleX;
             isShooting = true;
-            console.log("Touch start:", touchX);
         });
 
         canvas.addEventListener("touchmove", (e) => {
@@ -212,7 +243,7 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Start game after images load or immediately with fallback
+        // Start game after images load or with fallback
         let imagesLoaded = 0;
         const totalImages = 3;
         function onImageLoad() {
@@ -230,7 +261,6 @@
             if (imagesLoaded === totalImages) gameLoop();
         };
 
-        // Start immediately if images fail after a short delay
         setTimeout(() => {
             if (imagesLoaded < totalImages) {
                 console.warn("Starting game despite incomplete image load");
