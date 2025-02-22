@@ -19,8 +19,8 @@
             height: 100vh;
             max-width: 800px;
             max-height: 600px;
-            border: 1px solid black;
-            touch-action: none; /* Ensure touch works */
+            border: 1px solid white; /* White border to see canvas */
+            touch-action: none;
         }
     </style>
 </head>
@@ -29,6 +29,11 @@
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+            console.error("Failed to get 2D context");
+            alert("Canvas context not supported");
+        }
 
         canvas.width = Math.min(window.innerWidth, 800);
         canvas.height = Math.min(window.innerHeight, 600);
@@ -83,4 +88,145 @@
 
         canvas.addEventListener("touchstart", (e) => {
             e.preventDefault();
-            const rect = canvas.getBounding
+            const rect = canvas.getBoundingClientRect();
+            touchX = (e.touches[0].clientX - rect.left) * scaleX;
+            isShooting = true;
+            console.log("Touch start:", touchX);
+        });
+
+        canvas.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            touchX = (e.touches[0].clientX - rect.left) * scaleX;
+        });
+
+        canvas.addEventListener("touchend", (e) => {
+            e.preventDefault();
+            touchX = null;
+            isShooting = false;
+        });
+
+        function update() {
+            if (touchX !== null) {
+                let targetX = touchX - player.width / 2;
+                if (targetX < 0) targetX = 0;
+                if (targetX > canvas.width - player.width) targetX = canvas.width - player.width;
+                player.x += (targetX - player.x) * 0.1;
+            }
+
+            if (isShooting && shootCooldown <= 0) {
+                shoot();
+                shootCooldown = 10;
+            }
+            if (shootCooldown > 0) shootCooldown--;
+
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                projectiles[i].y += projectileSpeed;
+                if (projectiles[i].y + projectiles[i].height < 0) {
+                    projectiles.splice(i, 1);
+                }
+            }
+
+            spawnTimer++;
+            if (spawnTimer % 60 === 0) spawnEnemy();
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                enemies[i].y += enemySpeed;
+                if (enemies[i].y > canvas.height) enemies.splice(i, 1);
+            }
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                for (let j = projectiles.length - 1; j >= 0; j--) {
+                    if (projectiles[j].x < enemies[i].x + enemies[i].width &&
+                        projectiles[j].x + projectiles[j].width > enemies[i].x &&
+                        projectiles[j].y < enemies[i].y + enemies[i].height &&
+                        projectiles[j].y + projectiles[j].height > enemies[i].y) {
+                        enemies.splice(i, 1);
+                        projectiles.splice(j, 1);
+                        score += 10;
+                        break;
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Fallback rendering if images fail
+            if (playerImg.complete && playerImg.naturalWidth !== 0) {
+                ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+            } else {
+                ctx.fillStyle = "white";
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+                console.warn("Player image not loaded");
+            }
+
+            projectiles.forEach(p => {
+                if (bulletImg.complete && bulletImg.naturalWidth !== 0) {
+                    ctx.drawImage(bulletImg, p.x, p.y, p.width, p.height);
+                } else {
+                    ctx.fillStyle = "yellow";
+                    ctx.fillRect(p.x, p.y, p.width, p.height);
+                }
+            });
+
+            enemies.forEach(e => {
+                if (enemyImg.complete && enemyImg.naturalWidth !== 0) {
+                    ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height);
+                } else {
+                    ctx.fillStyle = "green";
+                    ctx.fillRect(e.x, e.y, e.width, e.height);
+                }
+            });
+
+            ctx.fillStyle = "white";
+            ctx.font = `${Math.max(20, canvas.width * 0.025)}px Arial`;
+            ctx.fillText(`Score: ${score}`, 10, 30);
+        }
+
+        function gameLoop() {
+            try {
+                update();
+                draw();
+            } catch (e) {
+                console.error("Game loop error:", e);
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start game after images load or fallback immediately
+        let imagesLoaded = 0;
+        const totalImages = 3;
+        function onImageLoad() {
+            imagesLoaded++;
+            console.log(`Image loaded. Total: ${imagesLoaded}/${totalImages}`);
+            if (imagesLoaded === totalImages) gameLoop();
+        }
+
+        bulletImg.onload = playerImg.onload = enemyImg.onload = onImageLoad;
+        bulletImg.onerror = () => {
+            console.error("Bullet image failed to load");
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) gameLoop();
+        };
+        playerImg.onerror = () => {
+            console.error("Player image failed to load");
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) gameLoop();
+        };
+        enemyImg.onerror = () => {
+            console.error("Enemy image failed to load");
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) gameLoop();
+        };
+
+        // Start game even if images fail after a timeout
+        setTimeout(() => {
+            if (imagesLoaded < totalImages) {
+                console.warn("Images not fully loaded, starting anyway");
+                gameLoop();
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
