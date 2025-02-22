@@ -19,7 +19,6 @@
             height: 100vh;
             max-width: 800px;
             max-height: 600px;
-            border: 1px solid white;
             touch-action: none;
         }
     </style>
@@ -30,13 +29,19 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Initial canvas size (worked before)
+        // Constants for better maintainability
+        const PROJECTILE_SPEED = -10;
+        const SHOOT_COOLDOWN = 10;
+        const SPAWN_RATE = 60;
+        const TOUCH_SMOOTHING = 0.1;
+        const ENEMY_SPEED = 0.005; // Relative to canvas height
+        const DEBUG = false;
+
+        // Initial canvas size and scaling
         canvas.width = Math.min(window.innerWidth, 800);
         canvas.height = Math.min(window.innerHeight, 600);
-        const scaleX = canvas.width / canvas.offsetWidth;
-        const scaleY = canvas.height / canvas.offsetHeight;
-
-        console.log("Canvas size:", canvas.width, canvas.height);
+        let scaleX = canvas.width / canvas.offsetWidth;
+        let scaleY = canvas.height / canvas.offsetHeight;
 
         // Preload images
         const bulletImg = new Image();
@@ -51,19 +56,17 @@
             y: canvas.height - canvas.height * 0.1,
             width: canvas.width * 0.05,
             height: canvas.height * 0.05,
-            speed: canvas.width * 0.01,
-            dx: 0
+            speed: canvas.width * 0.01
         };
 
         const projectiles = [];
-        const projectileSpeed = -10;
         const enemies = [];
-        const enemySpeed = canvas.height * 0.005;
         let spawnTimer = 0;
         let score = 0;
         let touchX = null;
         let isShooting = false;
         let shootCooldown = 0;
+        let gameOver = false;
 
         // Keyboard controls
         let leftPressed = false;
@@ -94,7 +97,7 @@
             const rect = canvas.getBoundingClientRect();
             touchX = (e.touches[0].clientX - rect.left) * scaleX;
             isShooting = true;
-            console.log("Touch start:", touchX);
+            if (DEBUG) console.log("Touch start:", touchX);
         });
 
         canvas.addEventListener("touchmove", (e) => {
@@ -123,134 +126,14 @@
         });
 
         function update() {
+            if (gameOver) return;
+
             // Keyboard movement
             if (leftPressed && player.x > 0) player.x -= player.speed;
             if (rightPressed && player.x < canvas.width - player.width) player.x += player.speed;
 
-            // Touch movement
+            // Touch movement with hard clamp
             if (touchX !== null) {
                 let targetX = touchX - player.width / 2;
                 if (targetX < 0) targetX = 0;
-                if (targetX > canvas.width - player.width) targetX = canvas.width - player.width;
-                player.x += (targetX - player.x) * 0.1;
-            }
-
-            // Shooting
-            if ((isShooting || spacePressed) && shootCooldown <= 0) {
-                shoot();
-                shootCooldown = 10;
-            }
-            if (shootCooldown > 0) shootCooldown--;
-
-            // Update projectiles
-            for (let i = projectiles.length - 1; i >= 0; i--) {
-                projectiles[i].y += projectileSpeed;
-                if (projectiles[i].y + projectiles[i].height < 0) {
-                    projectiles.splice(i, 1);
-                }
-            }
-
-            // Update enemies
-            spawnTimer++;
-            if (spawnTimer % 60 === 0) spawnEnemy();
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                enemies[i].y += enemySpeed;
-                if (enemies[i].y > canvas.height) enemies.splice(i, 1);
-            }
-
-            // Collision detection
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                for (let j = projectiles.length - 1; j >= 0; j--) {
-                    if (projectiles[j].x < enemies[i].x + enemies[i].width &&
-                        projectiles[j].x + projectiles[j].width > enemies[i].x &&
-                        projectiles[j].y < enemies[i].y + enemies[i].height &&
-                        projectiles[j].y + projectiles[j].height > enemies[i].y) {
-                        enemies.splice(i, 1);
-                        projectiles.splice(j, 1);
-                        score += 10;
-                        break;
-                    }
-                }
-            }
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Render with fallback
-            if (playerImg.complete && playerImg.naturalWidth !== 0) {
-                ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-            } else {
-                ctx.fillStyle = "white";
-                ctx.fillRect(player.x, player.y, player.width, player.height);
-            }
-
-            projectiles.forEach(p => {
-                if (bulletImg.complete && bulletImg.naturalWidth !== 0) {
-                    ctx.drawImage(bulletImg, p.x, p.y, p.width, p.height);
-                } else {
-                    ctx.fillStyle = "yellow";
-                    ctx.fillRect(p.x, p.y, p.width, p.height);
-                }
-            });
-
-            enemies.forEach(e => {
-                if (enemyImg.complete && enemyImg.naturalWidth !== 0) {
-                    ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height);
-                } else {
-                    ctx.fillStyle = "green";
-                    ctx.fillRect(e.x, e.y, e.width, e.height);
-                }
-            });
-
-            ctx.fillStyle = "white";
-            ctx.font = `${Math.max(20, canvas.width * 0.025)}px Arial`;
-            ctx.fillText(`Score: ${score}`, 10, 30);
-        }
-
-        function gameLoop() {
-            console.log("Game loop running");
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-
-        // Start game after images load or with fallback
-        let imagesLoaded = 0;
-        const totalImages = 3;
-        function onImageLoad() {
-            imagesLoaded++;
-            console.log(`Image loaded: ${imagesLoaded}/${totalImages}`);
-            if (imagesLoaded === totalImages) {
-                console.log("All images loaded, starting game");
-                gameLoop();
-            }
-        }
-
-        bulletImg.onload = playerImg.onload = enemyImg.onload = onImageLoad;
-        bulletImg.onerror = playerImg.onerror = enemyImg.onerror = () => {
-            imagesLoaded++;
-            console.error("An image failed to load");
-            if (imagesLoaded === totalImages) gameLoop();
-        };
-
-        setTimeout(() => {
-            if (imagesLoaded < totalImages) {
-                console.warn("Starting game despite incomplete image load");
-                gameLoop();
-            }
-        }, 2000);
-
-        // Minimal mobile fix: Adjust canvas height if needed
-        function adjustMobileViewport() {
-            if (window.innerWidth < 800 && canvas.height > window.innerHeight) {
-                canvas.height = window.innerHeight;
-                player.y = canvas.height - canvas.height * 0.1;
-                console.log("Adjusted mobile height:", canvas.height);
-            }
-        }
-        window.addEventListener("resize", adjustMobileViewport);
-        adjustMobileViewport(); // Initial check
-    </script>
-</body>
-</html>
+                if (targetX > canvas.width - player
