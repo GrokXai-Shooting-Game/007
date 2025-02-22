@@ -121,11 +121,14 @@
 
             // Draw projectiles
            
+            // Old:
+            // projectiles.forEach(p => ctx.fillRect(p.x, p.y, p.width, p.height));
 
             // New:
             projectiles.forEach(p => {
             ctx.drawImage(bulletImg, p.x, p.y, p.width, p.height);
             });
+            
 
             // Draw enemies
             ctx.fillStyle = "green";
