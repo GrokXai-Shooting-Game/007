@@ -9,9 +9,11 @@
 </head>
 <body>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <img id="bulletImage" src="bullet.png" style="display:none;">
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
+const bulletImg = document.getElementById("bulletImage");
 
         // Player
         const player = {
@@ -117,9 +119,13 @@
             ctx.fillStyle = "white";
             ctx.fillRect(player.x, player.y, player.width, player.height);
 
-            // Draw projectiles
-            ctx.fillStyle = "red";
-            projectiles.forEach(p => ctx.fillRect(p.x, p.y, p.width, p.height));
+           // Old:
+           // projectiles.forEach(p => ctx.fillRect(p.x, p.y, p.width, p.height));
+
+           // New:
+           projectiles.forEach(p => {
+           ctx.drawImage(bulletImg, p.x, p.y, p.width, p.height);
+           });
 
             // Draw enemies
             ctx.fillStyle = "green";
