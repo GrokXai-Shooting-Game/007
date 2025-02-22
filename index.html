@@ -52,7 +52,7 @@
         };
 
         const projectiles = [];
-        const projectileSpeed = -10;
+        const projectileSpeed = -10; // Negative to move upward
         const enemies = [];
         const enemySpeed = canvas.height * 0.005;
         let spawnTimer = 0;
@@ -97,18 +97,30 @@
         });
 
         function update() {
+            // Player movement
             if (touchX !== null) {
                 let targetX = touchX - player.width / 2;
                 if (targetX < 0) targetX = 0;
                 if (targetX > canvas.width - player.width) targetX = canvas.width - player.width;
                 player.x += (targetX - player.x) * 0.1;
             }
+
+            // Shooting logic
             if (isShooting && shootCooldown <= 0) {
                 shoot();
                 shootCooldown = 10;
             }
             if (shootCooldown > 0) shootCooldown--;
 
+            // Update projectiles (move upward)
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                projectiles[i].y += projectileSpeed;
+                if (projectiles[i].y + projectiles[i].height < 0) {
+                    projectiles.splice(i, 1); // Remove off-screen projectiles
+                }
+            }
+
+            // Update enemies
             spawnTimer++;
             if (spawnTimer % 60 === 0) spawnEnemy();
             for (let i = enemies.length - 1; i >= 0; i--) {
@@ -116,38 +128,8 @@
                 if (enemies[i].y > canvas.height) enemies.splice(i, 1);
             }
 
+            // Collision detection
             for (let i = enemies.length - 1; i >= 0; i--) {
                 for (let j = projectiles.length - 1; j >= 0; j--) {
                     if (projectiles[j].x < enemies[i].x + enemies[i].width &&
-                        projectiles[j].x + projectiles[j].width > enemies[i].x &&
-                        projectiles[j].y < enemies[i].y + enemies[i].height &&
-                        projectiles[j].y + projectiles[j].height > enemies[i].y) {
-                        enemies.splice(i, 1);
-                        projectiles.splice(j, 1);
-                        score += 10;
-                        break;
-                    }
-                }
-            }
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-            projectiles.forEach(p => ctx.drawImage(bulletImg, p.x, p.y, p.width, p.height));
-            enemies.forEach(e => ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height));
-            ctx.fillStyle = "white";
-            ctx.font = `${Math.max(20, canvas.width * 0.025)}px Arial`;
-            ctx.fillText(`Score: ${score}`, 10, 30);
-        }
-
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-
-        gameLoop();
-    </script>
-</body>
-</html>
+                        projectiles[j].x + projectiles[j].width > enemies
