@@ -20,7 +20,7 @@
             max-width: 800px;
             max-height: 600px;
             touch-action: none;
-            background: #111; /* Slight gray to distinguish from body */
+            background: #111; /* Dark gray to confirm rendering */
         }
     </style>
 </head>
@@ -28,7 +28,9 @@
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <script>
         const canvas = document.getElementById("gameCanvas");
+        if (!canvas) console.error("Canvas not found!");
         const ctx = canvas.getContext("2d");
+        if (!ctx) console.error("Canvas context not initialized!");
 
         // Constants
         const PROJECTILE_SPEED = -10;
@@ -43,22 +45,14 @@
         const scaleX = canvas.width / canvas.offsetWidth;
         const scaleY = canvas.height / canvas.offsetHeight;
 
-        console.log("Canvas initialized:", canvas.width, canvas.height);
-
-        // Preload images (optional)
-        const bulletImg = new Image();
-        bulletImg.src = "bullet.png";
-        const playerImg = new Image();
-        playerImg.src = "player.png";
-        const enemyImg = new Image();
-        enemyImg.src = "enemy.png";
+        console.log("Canvas size:", canvas.width, canvas.height);
 
         const player = {
             x: canvas.width / 2,
-            y: canvas.height - canvas.height * 0.1,
-            width: canvas.width * 0.05,
-            height: canvas.height * 0.05,
-            speed: canvas.width * 0.01
+            y: canvas.height - 50, // Fixed position for simplicity
+            width: 40,
+            height: 40,
+            speed: 5
         };
 
         const projectiles = [];
@@ -77,20 +71,22 @@
 
         function spawnEnemy() {
             enemies.push({
-                x: Math.random() * (canvas.width - canvas.width * 0.05),
-                y: -canvas.height * 0.05,
-                width: canvas.width * 0.05,
-                height: canvas.height * 0.05
+                x: Math.random() * (canvas.width - 40),
+                y: -40,
+                width: 40,
+                height: 40
             });
+            console.log("Spawned enemy, total:", enemies.length);
         }
 
         function shoot() {
             projectiles.push({
-                x: player.x + player.width / 2 - (canvas.width * 0.025) / 2,
+                x: player.x + player.width / 2 - 10,
                 y: player.y,
-                width: canvas.width * 0.025,
-                height: canvas.height * 0.05
+                width: 20,
+                height: 20
             });
+            console.log("Shot fired, total projectiles:", projectiles.length);
         }
 
         // Touch controls
@@ -194,6 +190,7 @@
         }
 
         function draw() {
+            console.log("Drawing frame...");
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (gameOver) {
@@ -205,31 +202,20 @@
             }
 
             // Draw player
-            ctx.fillStyle = "white"; // Fallback if images fail
-            if (playerImg.complete && playerImg.naturalWidth !== 0) {
-                ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-            } else {
-                ctx.fillRect(player.x, player.y, player.width, player.height);
-            }
+            ctx.fillStyle = "white";
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            console.log("Player at:", player.x, player.y);
 
             // Draw projectiles
             ctx.fillStyle = "yellow";
             projectiles.forEach(p => {
-                if (bulletImg.complete && bulletImg.naturalWidth !== 0) {
-                    ctx.drawImage(bulletImg, p.x, p.y, p.width, p.height);
-                } else {
-                    ctx.fillRect(p.x, p.y, p.width, p.height);
-                }
+                ctx.fillRect(p.x, p.y, p.width, p.height);
             });
 
             // Draw enemies
             ctx.fillStyle = "green";
             enemies.forEach(e => {
-                if (enemyImg.complete && enemyImg.naturalWidth !== 0) {
-                    ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height);
-                } else {
-                    ctx.fillRect(e.x, e.y, e.width, e.height);
-                }
+                ctx.fillRect(e.x, e.y, e.width, e.height);
             });
 
             // Draw score
@@ -239,29 +225,21 @@
         }
 
         function gameLoop() {
-            console.log("Game loop running");
+            console.log("Game loop iteration");
             update();
             draw();
             requestAnimationFrame(gameLoop);
         }
 
-        // Start game immediately, bypassing image load for now
+        // Start game immediately
         console.log("Starting game...");
         gameLoop();
-
-        // Optional: Log image loading progress
-        bulletImg.onload = () => console.log("Bullet image loaded");
-        playerImg.onload = () => console.log("Player image loaded");
-        enemyImg.onload = () => console.log("Enemy image loaded");
-        bulletImg.onerror = () => console.error("Bullet image failed to load");
-        playerImg.onerror = () => console.error("Player image failed to load");
-        enemyImg.onerror = () => console.error("Enemy image failed to load");
 
         // Basic resize adjustment
         function adjustMobileViewport() {
             if (window.innerWidth < 800 && canvas.height > window.innerHeight) {
                 canvas.height = window.innerHeight;
-                player.y = canvas.height - canvas.height * 0.1;
+                player.y = canvas.height - 50;
                 console.log("Adjusted height:", canvas.height);
             }
         }
