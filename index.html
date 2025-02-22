@@ -4,19 +4,21 @@
     <title>Space Shooter</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
+            height: 100%; /* Use full viewport height */
+            overflow: hidden;
+        }
+        body {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
             background: #000;
-            overflow: hidden;
         }
         canvas {
-            width: 100vw;
-            height: 100vh;
+            width: 100%; /* Fit horizontally */
+            height: 100%; /* Fit vertically */
             max-width: 800px;
             max-height: 600px;
             border: 1px solid white;
@@ -30,13 +32,36 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Initial canvas size
-        canvas.width = Math.min(window.innerWidth, 800);
-        canvas.height = Math.min(window.innerHeight, 600);
+        // Set canvas size dynamically
+        function resizeCanvas() {
+            const maxWidth = 800;
+            const maxHeight = 600;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            // Fit canvas to viewport, respecting max dimensions
+            canvas.width = Math.min(windowWidth, maxWidth);
+            canvas.height = Math.min(windowHeight, maxHeight);
+
+            // Log size for debugging
+            console.log("Canvas size:", canvas.width, canvas.height);
+
+            // Recalculate scaling for touch
+            const scaleX = canvas.width / canvas.offsetWidth;
+            const scaleY = canvas.height / canvas.offsetHeight;
+
+            // Adjust player properties
+            player.width = canvas.width * 0.05;
+            player.height = canvas.height * 0.05;
+            player.speed = canvas.width * 0.01;
+            player.x = Math.min(player.x, canvas.width - player.width);
+            player.y = canvas.height - canvas.height * 0.1;
+        }
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas(); // Initial sizing
+
         const scaleX = canvas.width / canvas.offsetWidth;
         const scaleY = canvas.height / canvas.offsetHeight;
-
-        console.log("Canvas size:", canvas.width, canvas.height);
 
         // Preload images
         const bulletImg = new Image();
